@@ -71,7 +71,9 @@ if __name__ == "__main__":
             print("Master password incorrect or integrity check failed.")
             exit(1)
 
-        # dekriptovanje i upisivanje u dictionary
+        # dekriptovanje i upisivanje u dictionary nakon dodavanja paddinga
+        args.password = args.password.ljust(32, " ")
+        args.url = args.url.ljust(32, " ")
         decrypted = cipher.decrypt(ciphertext)
         dict_data = eval(decrypted.decode())
         dict_data[args.url] = args.password
@@ -120,7 +122,7 @@ if __name__ == "__main__":
         # dekriptovanje i dohvacanje lozinke
         decrypted = cipher.decrypt(ciphertext)
         dict_data = eval(decrypted.decode())
-        if args.url not in dict_data:
-            print("No password found for " + args.url)
-            exit(1)
-        print("Password for " + args.url + " is: " + dict_data.get(args.url))
+        if args.url.ljust(32, " ") not in dict_data:
+            print("No password found for " + args.url.strip())
+        else:
+            print("Password for " + args.url + " is: " + dict_data.get(args.url.ljust(32, " ")).strip())
