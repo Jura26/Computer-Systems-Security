@@ -21,16 +21,18 @@ if __name__ == "__main__":
         N = 2**14
         r = 8
         p = 1
-        # derivacija kljuca pomocu scrypt funkcije
-        key = scrypt(args.master, salt, 32, N=2**14, r=8, p=1)
+        # derivacija kljuca pomocu scrypt funkcije (64 bytes za encryption i mac)
+        key = scrypt(args.master, salt, 64, N=2**14, r=8, p=1)
+        encKey = key[:32]
+        macKey = key[32:]
         # inicijalizacija sifre pomocu dobivenog kljuca
-        cipher = Salsa20.new(key)
+        cipher = Salsa20.new(encKey)
         # inicijalizacija dictionary-a i njegovo sifrovanje
         empty = {}
         ciphertext = cipher.encrypt(empty.__str__().encode())
 
         # generiranje HMAC-a za provjeru integriteta
-        h = HMAC.new(key, digestmod=SHA256)
+        h = HMAC.new(macKey, digestmod=SHA256)
         h.update(ciphertext)
 
         # spremanje u datoteku
@@ -59,11 +61,13 @@ if __name__ == "__main__":
             ciphertext = f.read()
 
         # deriviranje istog kljuca kao i prilikom inicijalizacije
-        key = scrypt(args.master, salt, 32, N=N, r=r, p=p)
-        cipher = Salsa20.new(key=key, nonce=nonce)
+        key = scrypt(args.master, salt, 64, N=N, r=r, p=p)
+        encKey = key[:32]
+        macKey = key[32:]
+        cipher = Salsa20.new(key=encKey, nonce=nonce)
 
         # provjera integriteta pomocu HMAC-a
-        h = HMAC.new(key, digestmod=SHA256)
+        h = HMAC.new(macKey, digestmod=SHA256)
         h.update(ciphertext)
         try:
             h.verify(mac)
@@ -75,22 +79,28 @@ if __name__ == "__main__":
         args.password = args.password.ljust(32, " ")
         args.url = args.url.ljust(32, " ")
         decrypted = cipher.decrypt(ciphertext)
-        dict_data = eval(decrypted.decode())
-        dict_data[args.url] = args.password
+        dictData = eval(decrypted.decode())
+        dictData[args.url] = args.password
+
+        # generiranje novog salta i kljuca
+        newSalt = get_random_bytes(16)
+        newKey = scrypt(args.master, newSalt, 64, N=N, r=r, p=p)
+        newEncKey = newKey[:32]
+        newMacKey = newKey[32:]
 
         # ponovno sifrovanje i izracunavanje novog HMAC-a
-        new_cipher = Salsa20.new(key=key)
-        new_ciphertext = new_cipher.encrypt(dict_data.__str__().encode())
-        new_mac = HMAC.new(key, digestmod=SHA256)
+        newCipher = Salsa20.new(key=newEncKey)
+        new_ciphertext = newCipher.encrypt(dictData.__str__().encode())
+        new_mac = HMAC.new(newMacKey, digestmod=SHA256)
         new_mac.update(new_ciphertext)
 
         # spremanje u datoteku
         with open("passwords.txt", "wb") as f:
-            f.write(salt)
+            f.write(newSalt)
             f.write(N.to_bytes(4, "big"))
             f.write(r.to_bytes(4, "big"))
             f.write(p.to_bytes(4, "big"))
-            f.write(new_cipher.nonce)
+            f.write(newCipher.nonce)
             f.write(new_mac.digest())
             f.write(new_ciphertext)
 
@@ -107,11 +117,13 @@ if __name__ == "__main__":
             ciphertext = f.read()
 
         # deriviranje istog kljuca kao i prilikom inicijalizacije
-        key = scrypt(args.master, salt, 32, N=N, r=r, p=p)
-        cipher = Salsa20.new(key=key, nonce=nonce)
+        key = scrypt(args.master, salt, 64, N=N, r=r, p=p)
+        encKey = key[:32]
+        macKey = key[32:]
+        cipher = Salsa20.new(key=encKey, nonce=nonce)
 
         # provjera integriteta pomocu HMAC-a
-        h = HMAC.new(key, digestmod=SHA256)
+        h = HMAC.new(macKey, digestmod=SHA256)
         h.update(ciphertext)
         try:
             h.verify(mac)
@@ -121,8 +133,8 @@ if __name__ == "__main__":
 
         # dekriptovanje i dohvacanje lozinke
         decrypted = cipher.decrypt(ciphertext)
-        dict_data = eval(decrypted.decode())
-        if args.url.ljust(32, " ") not in dict_data:
+        dictData = eval(decrypted.decode())
+        if args.url.ljust(32, " ") not in dictData:
             print("No password found for " + args.url.strip())
         else:
-            print("Password for " + args.url + " is: " + dict_data.get(args.url.ljust(32, " ")).strip())
+            print("Password for " + args.url + " is: " + dictData.get(args.url.ljust(32, " ")).strip())
